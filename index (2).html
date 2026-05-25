@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StudyAI - Smart Study Pack Generator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; }
+
+  .app { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  .header { text-align: center; margin-bottom: 2.5rem; }
+  .header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; color: #1a1a1a; }
+  .header h1 span { color: #4A3FBF; }
+  .header p { margin-top: 0.4rem; font-size: 0.95rem; color: #666; }
+
+  .upload-zone { border: 1.5px dashed #4A3FBF55; border-radius: 16px; padding: 2.5rem; text-align: center; background: #EEEDFE55; cursor: pointer; transition: all 0.2s; position: relative; }
+  .upload-zone:hover, .upload-zone.dragover { border-color: #4A3FBF; background: #EEEDFEBB; }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-zone i { font-size: 2.5rem; color: #534AB7; }
+  .upload-zone h3 { margin-top: 0.75rem; font-size: 1rem; font-weight: 600; color: #3C3489; }
+  .upload-zone p { font-size: 0.85rem; color: #666; margin-top: 0.3rem; }
+
+  textarea.paste-area { width: 100%; min-height: 160px; border: 0.5px solid #ccc; border-radius: 12px; padding: 1rem; font-size: 0.9rem; font-family: inherit; resize: vertical; background: #fff; color: #1a1a1a; margin-top: 1rem; }
+  textarea.paste-area:focus { outline: none; border-color: #534AB7; }
+
+  .divider { display: flex; align-items: center; gap: 1rem; margin: 1.25rem 0; color: #666; font-size: 0.85rem; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 0.5px; background: #ddd; }
+
+  .api-key-section { margin-bottom: 1rem; }
+  .api-key-section label { font-size: 0.85rem; font-weight: 600; color: #3C3489; display: block; margin-bottom: 0.4rem; }
+  .api-key-section input { width: 100%; padding: 0.65rem 1rem; border: 0.5px solid #ccc; border-radius: 10px; font-size: 0.88rem; font-family: inherit; background: #fff; color: #1a1a1a; }
+  .api-key-section input:focus { outline: none; border-color: #534AB7; }
+  .api-key-section small { font-size: 0.78rem; color: #888; margin-top: 0.3rem; display: block; }
+
+  .analyze-btn { width: 100%; padding: 0.85rem; background: #534AB7; color: #fff; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
+  .analyze-btn:hover:not(:disabled) { background: #3C3489; }
+  .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .status-bar { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.88rem; background: #EEEDFE; color: #3C3489; display: flex; align-items: center; gap: 0.5rem; }
+
+  .tabs { display: flex; gap: 0.5rem; margin-top: 2rem; border-bottom: 0.5px solid #ddd; }
+  .tab { padding: 0.6rem 1.2rem; border: none; background: none; cursor: pointer; font-size: 0.9rem; font-weight: 500; color: #666; border-bottom: 2.5px solid transparent; transition: all 0.2s; }
+  .tab.active { color: #534AB7; border-bottom-color: #534AB7; }
+
+  .panel { margin-top: 1.5rem; }
+
+  .topic-card { background: #fff; border: 0.5px solid #eee; border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; }
+  .topic-card h3 { font-size: 1rem; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .importance-badge { font-size: 0.72rem; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+  .imp-high { background: #FAECE7; color: #993C1D; }
+  .imp-med { background: #FAEEDA; color: #854F0B; }
+  .imp-low { background: #EAF3DE; color: #3B6D11; }
+  .topic-card p { font-size: 0.87rem; color: #555; margin-top: 0.5rem; line-height: 1.6; }
+  .topic-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+  .tag { font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; background: #EEEDFE; color: #3C3489; }
+
+  .question-card { background: #fff; border: 0.5px solid #eee; border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; }
+  .q-meta { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+  .q-num { font-size: 0.78rem; font-weight: 700; color: #534AB7; background: #EEEDFE; padding: 3px 10px; border-radius: 20px; }
+  .q-type { font-size: 0.78rem; color: #666; }
+  .q-level { font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .lvl-recall { background: #E6F1FB; color: #185FA5; }
+  .lvl-understand { background: #EAF3DE; color: #3B6D11; }
+  .lvl-apply { background: #FAEEDA; color: #854F0B; }
+  .lvl-analyze { background: #FAECE7; color: #993C1D; }
+  .question-text { font-size: 0.95rem; font-weight: 500; line-height: 1.55; color: #1a1a1a; }
+  .answer-toggle { margin-top: 0.75rem; font-size: 0.82rem; color: #534AB7; cursor: pointer; font-weight: 500; border: none; background: none; padding: 0; }
+  .answer-box { margin-top: 0.6rem; padding: 0.75rem 1rem; background: #EEEDFE55; border-left: 3px solid #534AB7; border-radius: 0 8px 8px 0; font-size: 0.87rem; color: #444; line-height: 1.6; }
+
+  .note-card { background: #fff; border: 0.5px solid #eee; border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; }
+  .note-card h3 { font-size: 0.95rem; font-weight: 600; color: #534AB7; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem; }
+  .note-body { font-size: 0.88rem; line-height: 1.7; color: #1a1a1a; white-space: pre-wrap; }
+
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2.5px solid #fff4; border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .file-chip { display: inline-flex; align-items: center; gap: 0.5rem; background: #EEEDFE; color: #3C3489; border-radius: 20px; padding: 0.4rem 0.9rem; font-size: 0.83rem; font-weight: 500; margin-top: 0.75rem; }
+
+  .progress-indicator { margin-top: 1rem; }
+  .progress-step { display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; color: #555; margin-bottom: 0.4rem; }
+  .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; flex-shrink: 0; transition: background 0.3s; }
+  .step-dot.done { background: #4A3FBF; }
+  .step-dot.active { background: #4A3FBF; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1a1a; color: #eee; }
+    .header h1 { color: #eee; }
+    .upload-zone { background: #2a2760aa; }
+    .upload-zone:hover { background: #2a2760dd; }
+    textarea.paste-area { background: #2c2c2c; color: #eee; border-color: #444; }
+    .api-key-section input { background: #2c2c2c; color: #eee; border-color: #444; }
+    .topic-card, .question-card, .note-card { background: #242424; border-color: #333; }
+    .question-text { color: #eee; }
+    .note-body { color: #ddd; }
+    .topic-card h3 { color: #eee; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Study<span>AI</span> 🎓</h1>
+    <p>Import your study material — get topics, questions &amp; memory notes powered by AI</p>
+  </div>
+
+  <div id="import-section">
+
+    <!-- API Key Input -->
+    <div class="api-key-section">
+      <label for="api-key-input">🔑 Anthropic API Key</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off" />
+      <small>Your key is never stored or sent anywhere except directly to Anthropic's API. Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></small>
+    </div>
+
+    <div class="upload-zone" id="dropzone">
+      <input type="file" id="file-input" accept=".txt,.pdf,.md,.csv,.doc,.docx" />
+      <i class="ti ti-file-upload"></i>
+      <h3>Drop your file here</h3>
+      <p>Supports .txt, .md, .csv (text-based files)</p>
+    </div>
+
+    <div id="file-chip-container"></div>
+
+    <div class="divider">or paste text directly</div>
+
+    <textarea class="paste-area" id="paste-input" placeholder="Paste your notes, lecture content, textbook excerpt, or any study material here..."></textarea>
+
+    <button class="analyze-btn" id="analyze-btn" onclick="analyzeContent()">
+      <i class="ti ti-brain"></i> Analyze &amp; Generate Study Pack
+    </button>
+
+    <div id="status-area"></div>
+  </div>
+
+  <div id="results-section" style="display:none;">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('topics', this)">
+        <i class="ti ti-map-2"></i> Topics
+      </button>
+      <button class="tab" onclick="switchTab('questions', this)">
+        <i class="ti ti-help-circle"></i> Questions
+      </button>
+      <button class="tab" onclick="switchTab('notes', this)">
+        <i class="ti ti-notes"></i> Memory Notes
+      </button>
+    </div>
+    <div id="topics-panel" class="panel"></div>
+    <div id="questions-panel" class="panel" style="display:none;"></div>
+    <div id="notes-panel" class="panel" style="display:none;"></div>
+
+    <button class="analyze-btn" style="margin-top:2rem; background:#2c2c2a;" onclick="resetApp()">
+      <i class="ti ti-refresh"></i> Start Over with New Material
+    </button>
+  </div>
+</div>
+
+<script>
+  let studyData = null;
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('file-input');
+
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) handleFile(file);
+  });
+
+  function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      document.getElementById('paste-input').value = e.target.result;
+      const fc = document.getElementById('file-chip-container');
+      fc.innerHTML = `<div class="file-chip"><i class="ti ti-file-check" style="font-size:15px;"></i>${file.name}</div>`;
+    };
+    reader.readAsText(file);
+  }
+
+  function showStatus(msg, steps) {
+    const area = document.getElementById('status-area');
+    let stepsHtml = '';
+    if (steps) {
+      stepsHtml = '<div class="progress-indicator">' + steps.map((s, i) => `
+        <div class="progress-step">
+          <div class="step-dot ${s.state}" id="step-${i}"></div>
+          <span>${s.label}</span>
+        </div>`).join('') + '</div>';
+    }
+    area.innerHTML = `<div class="status-bar"><i class="ti ti-sparkles"></i> ${msg}</div>${stepsHtml}`;
+  }
+
+  function updateStep(index, state) {
+    const dot = document.getElementById(`step-${index}`);
+    if (dot) dot.className = `step-dot ${state}`;
+  }
+
+  async function analyzeContent() {
+    const content = document.getElementById('paste-input').value.trim();
+    const apiKey = document.getElementById('api-key-input').value.trim();
+
+    if (!apiKey) {
+      showStatus('⚠️ Please enter your Anthropic API key above.');
+      return;
+    }
+    if (!content || content.length < 50) {
+      showStatus('⚠️ Please add more content — at least a paragraph of study material.');
+      return;
+    }
+
+    const btn = document.getElementById('analyze-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Analyzing your material...';
+
+    const steps = [
+      { label: 'Extracting key topics and importance ranking', state: 'active' },
+      { label: "Building lecture-style questions (Bloom's Taxonomy)", state: '' },
+      { label: 'Writing memory notes and mnemonics', state: '' },
+    ];
+    showStatus('AI is processing your study material...', steps);
+
+    try {
+      const prompt = `You are an expert academic tutor and curriculum designer. Analyze the following study material and produce a comprehensive study pack in strict JSON format.
+
+Study Material:
+"""
+${content.substring(0, 6000)}
+"""
+
+Return ONLY valid JSON (no markdown, no explanation) with this exact structure:
+{
+  "subject": "brief subject/topic name",
+  "topics": [
+    {
+      "title": "Topic Name",
+      "importance": "high|medium|low",
+      "summary": "2-3 sentence explanation of this topic and why it matters",
+      "keywords": ["keyword1", "keyword2", "keyword3"]
+    }
+  ],
+  "questions": [
+    {
+      "question": "The question text",
+      "type": "Definition|Comparison|Application|Analysis|Evaluation",
+      "level": "recall|understand|apply|analyze",
+      "hint": "A helpful hint or partial answer framework",
+      "answer": "A model answer in 2-4 sentences"
+    }
+  ],
+  "notes": [
+    {
+      "title": "Concise Note Title",
+      "content": "Short, memorable note — 3-5 key sentences. Use simple language. Include any pattern, formula, or mnemonic if relevant.",
+      "highlight": "The single most important thing to memorize from this note"
+    }
+  ]
+}
+
+Rules:
+- Extract 4-7 topics ordered from most to least important
+- Generate 8-12 questions that build from basic recall to deep analysis (Bloom's Taxonomy)
+- Write 4-6 memory notes that are scannable and memorable
+- Be specific to the actual content — do not be generic
+- Ensure questions actually test understanding of the provided material`;
+
+      updateStep(0, 'active');
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-calls": "true"
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 4000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      updateStep(0, 'done');
+      updateStep(1, 'active');
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+
+      const raw = data.content.map(b => b.text || '').join('');
+      const clean = raw.replace(/```json|```/g, '').trim();
+
+      updateStep(1, 'done');
+      updateStep(2, 'active');
+
+      studyData = JSON.parse(clean);
+      await new Promise(r => setTimeout(r, 400));
+      updateStep(2, 'done');
+
+      renderResults(studyData);
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById('status-area').innerHTML = `
+        <div class="status-bar" style="background:#FCEBEB;color:#A32D2D;">
+          <i class="ti ti-alert-circle"></i> Error: ${err.message || 'Something went wrong. Check your API key and try again.'}
+        </div>`;
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-brain"></i> Analyze &amp; Generate Study Pack';
+    }
+  }
+
+  function renderResults(data) {
+    document.getElementById('import-section').style.display = 'none';
+    document.getElementById('results-section').style.display = 'block';
+    renderTopics(data.topics);
+    renderQuestions(data.questions);
+    renderNotes(data.notes);
+  }
+
+  function renderTopics(topics) {
+    const panel = document.getElementById('topics-panel');
+    panel.innerHTML = topics.map(t => {
+      const badge = t.importance === 'high' ? 'imp-high' : t.importance === 'medium' ? 'imp-med' : 'imp-low';
+      const impLabel = t.importance.charAt(0).toUpperCase() + t.importance.slice(1) + ' priority';
+      const tags = (t.keywords || []).map(k => `<span class="tag">${k}</span>`).join('');
+      return `<div class="topic-card">
+        <h3><i class="ti ti-bookmark-filled" style="font-size:16px;color:#534AB7;" aria-hidden="true"></i> ${t.title}
+          <span class="importance-badge ${badge}">${impLabel}</span>
+        </h3>
+        <p>${t.summary}</p>
+        <div class="topic-tags">${tags}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderQuestions(questions) {
+    const panel = document.getElementById('questions-panel');
+    panel.innerHTML = questions.map((q, i) => {
+      const levelClass = { recall: 'lvl-recall', understand: 'lvl-understand', apply: 'lvl-apply', analyze: 'lvl-analyze' }[q.level] || 'lvl-recall';
+      const levelLabel = q.level ? q.level.charAt(0).toUpperCase() + q.level.slice(1) : 'Recall';
+      return `<div class="question-card">
+        <div class="q-meta">
+          <span class="q-num">Q${i + 1}</span>
+          <span class="q-type">${q.type || 'Question'}</span>
+          <span class="q-level ${levelClass}">${levelLabel}</span>
+        </div>
+        <div class="question-text">${q.question}</div>
+        ${q.hint ? `<p style="font-size:0.82rem;color:#777;margin-top:0.5rem;">💡 Hint: ${q.hint}</p>` : ''}
+        <button class="answer-toggle" onclick="toggleAnswer(${i})">
+          <i class="ti ti-eye" style="font-size:14px;vertical-align:-2px;"></i> Show model answer
+        </button>
+        <div class="answer-box" id="ans-${i}" style="display:none;">${q.answer}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function toggleAnswer(i) {
+    const box = document.getElementById(`ans-${i}`);
+    const btn = box.previousElementSibling;
+    if (box.style.display === 'none') {
+      box.style.display = 'block';
+      btn.innerHTML = '<i class="ti ti-eye-off" style="font-size:14px;vertical-align:-2px;"></i> Hide answer';
+    } else {
+      box.style.display = 'none';
+      btn.innerHTML = '<i class="ti ti-eye" style="font-size:14px;vertical-align:-2px;"></i> Show model answer';
+    }
+  }
+
+  function renderNotes(notes) {
+    const panel = document.getElementById('notes-panel');
+    panel.innerHTML = notes.map(n => `
+      <div class="note-card">
+        <h3><i class="ti ti-file-text" style="font-size:16px;" aria-hidden="true"></i> ${n.title}</h3>
+        <div class="note-body">${n.content}</div>
+        ${n.highlight ? `<div style="margin-top:0.75rem;padding:0.6rem 0.9rem;border-radius:10px;background:#FAEEDA55;border-left:3px solid #EF9F27;">
+          <span style="font-size:0.75rem;font-weight:700;color:#854F0B;display:block;margin-bottom:2px;">⭐ KEY TO MEMORIZE</span>
+          <span style="font-size:0.87rem;color:#633806;">${n.highlight}</span>
+        </div>` : ''}
+      </div>`).join('');
+  }
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('topics-panel').style.display = name === 'topics' ? '' : 'none';
+    document.getElementById('questions-panel').style.display = name === 'questions' ? '' : 'none';
+    document.getElementById('notes-panel').style.display = name === 'notes' ? '' : 'none';
+  }
+
+  function resetApp() {
+    studyData = null;
+    document.getElementById('paste-input').value = '';
+    document.getElementById('file-chip-container').innerHTML = '';
+    document.getElementById('status-area').innerHTML = '';
+    const btn = document.getElementById('analyze-btn');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-brain"></i> Analyze &amp; Generate Study Pack';
+    document.getElementById('import-section').style.display = '';
+    document.getElementById('results-section').style.display = 'none';
+  }
+</script>
+</body>
+</html>
